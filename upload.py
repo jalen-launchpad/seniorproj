@@ -1,10 +1,10 @@
 import os
 from app import app
 import urllib.request
-from flask import Flask, flash, request, redirect, url_for, render_template
+from flask import Flask, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
 import torch
-from dvt import VideoBatchInput, DiffAnnotator, DVTOutput
+from dvt import VideoBatchInput, DiffAnnotator, DVTOutput, CutAggregator
 
 
 @app.route('/')
@@ -14,11 +14,9 @@ def upload_form():
 @app.route('/', methods=['POST'])
 def upload_video():
     if 'file' not in request.files:
-        flash('No file part')
         return redirect(request.url)
     file = request.files['file']
     if file.filename == '':
-        flash('No image selected for uploading')
         return redirect(request.url)
     else:
 
@@ -37,9 +35,16 @@ def upload_video():
         print(output)
 
         output.get_dataframes()["diff"]
-        
+        ca = CutAggregator(cut_vals={"q40": 5})
+        diff = output.get_dataframes()['diff']
+        cuts = ca.aggregate(diff)
+        num_cuts = len(cuts.index)
+        print(cuts)
+        print(str(len(cuts.index)))
+
+        os.remove(fullpath)
         #print('upload_video filename: ' + filename)
-        return render_template('video.html', filename=filename)
+        return cuts.to_json()
 
 
 

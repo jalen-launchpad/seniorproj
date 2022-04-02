@@ -1,5 +1,20 @@
 {% if filename %}
 	<div style="margin: 10px auto;">
+        <div>
+            <p>Number of cuts: {{num_cuts}} </p>
+        </div>
+
+    <form action="">
+        <label for="cars">Choose a social media account:</label>
+        <select name="social media account" id="social_media_account">
+        <option value="trey">tphills</option>
+        <option value="jalen">jalengabbidon</option>
+        <option value="teo">deuceteo</option>
+        <option value="druski">druski2funny</option>
+        </select>
+        <br><br>
+        <input type="submit" value="Submit">
+    </form>
 		<video controls="controls" preload="preload">
 			<source src="{{ url_for('display_video', filename=filename) }}" type="video/mp4"></source>
 		</video>

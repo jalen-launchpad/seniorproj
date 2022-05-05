@@ -1,0 +1,77 @@
+html, body {
+    height: 100%;
+    margin: 0px;
+}
+
+h1, h2, h3, h4, h5, h6, label, input {
+    color: #fff;
+    text-align: center;
+    font-family: "Lato";
+}
+
+.background {
+    background-color: #1f1f1f;
+    height: 100%;
+}
+
+.form-control {
+    padding: .6rem .8rem !important;
+    border: 2px solid #ced4da !important;
+    transition: none !important;
+}
+select.form-control{
+    height: 50px !important;
+    width: 250px;
+    padding: .6rem .4rem calc(.6rem + 1px) .4rem !important;
+}
+
+.button {
+    padding: 0;
+    border: none;
+    background: #148D00;
+}
+
+p {
+    color: #fff;
+}
+
+.container {
+    height: 70%;
+}
+
+.fullscreen {
+    height: 100%;
+}
+
+.select-mode-button {
+    border-radius: 2px;
+    background-color: #fbbc72;
+    border: none;
+    color: #1f1f1f;
+    padding: 30px 30px 30px 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 32px;
+    margin: 4px 30px;
+}
+
+.flex-horizontal {
+    display: flex;
+    flex-direction: row;
+}
+
+
+.flex-vertical {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-justify-center {
+    justify-content: center;
+    align-items: center;
+}
+
+.flex-justify-evenly {
+    justify-content: space-evenly;
+}

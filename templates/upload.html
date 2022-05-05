@@ -1,31 +1,53 @@
-<!doctype html>
-<title>Python Flask - Video Upload and Play Example</title>
-<h2>Select a video to upload and play</h2>
-<p>
-	{% with messages = get_flashed_messages() %}
-	  {% if messages %}
-		<ul>
-		{% for message in messages %}
-		  <li>{{ message }}</li>
-		{% endfor %}
-		</ul>
-	  {% endif %}
-	{% endwith %}
-</p>
-{% if filename %}
-	<div style="margin: 10px auto;">
-		<video autoplay="autoplay" controls="controls" preload="preload">
-			<source src="{{ url_for('display_video', filename=filename) }}" type="video/mp4"></source>
-		</video>
-	</div>
-{% endif %}
-<form method="post" action="/" enctype="multipart/form-data">
-    <dl>
+{% extends 'base.html' %}
+
+{% block content %}
+	<div>
+		<h2>Select a video to upload and train</h2>
 		<p>
-			<input type="file" name="file" autocomplete="off" required>
+			{% with messages = get_flashed_messages() %}
+			{% if messages %}
+				<ul>
+				{% for message in messages %}
+				<li>{{ message }}</li>
+				{% endfor %}
+				</ul>
+			{% endif %}
+			{% endwith %}
 		</p>
-    </dl>
-    <p>
-		<input type="submit" value="Upload">
-	</p>
-</form>
+		{% if filename %}
+			<div style="margin: 10px auto;">
+				
+				<video autoplay="autoplay" controls="controls" preload="preload">
+					<source src="{{ url_for('display_video', filename=filename) }}" type="video/mp4"></source>
+				</video>
+			</div>
+		{% endif %}
+
+		<form method="post" action="http://localhost:5000/train" method = "POST" enctype="multipart/form-data">
+			<div class="flex-vertical flex-justify-evenly">
+				<div class="flex-vertical flex-justify-center">
+					<label for="username">Please enter account username</label>
+					<input style="width: 250px; height: 50px; border-radius:3px; color:black;" type="text" name="username" autocomplete="on" required>
+				</div>
+
+				<div style="margin-top: 50px;" class="flex-vertical flex-justify-center">
+					<label for="success">Please select video success level</label>
+					<select class="form-control" name="success_level" id="success">
+						<option value="none">No Success</option>
+						<option value="low">Low Success</option>
+						<option value="medium">Medium Success</option>
+						<option value="high">High Success</option>
+					  </select>
+				</div>
+
+				<div style="margin-top: 50px;" class="flex-vertical flex-justify-center">
+					<label for="username">Upload video here</label>
+					<input type="file" id="file" name="file" autocomplete="off" required>				
+				</div>
+			<div style="margin-top: 50px;" class="flex-horizontal flex-justify-center">
+				<input class="button" style="border:none; width: 250px; height: 50px; border-radius:3px; color:white;" type="submit" value="Upload">
+			</div>
+			</div>
+		</form>
+	</div>
+{% endblock %}

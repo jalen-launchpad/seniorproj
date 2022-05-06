@@ -14,9 +14,14 @@ from sklearn import tree
 def select_mode():
     return render_template('selectMode.html')
 
-@app.route('/upload')
-def upload_form():
-    return render_template('upload.html')
+@app.route('/train-upload')
+def train_upload_form():
+    return render_template('train-upload.html')
+
+
+@app.route('/run-upload')
+def run_upload_form():
+    return render_template('run-upload.html')
 
 def check_file_validity():
     if 'file' not in request.files:
@@ -74,7 +79,7 @@ def upload_video():
         os.remove(fullpath)
         print('upload_video filename: ' + filename)
 
-        record = Record(account_username=request.form['username'], filename=filename, num_cuts=len(cuts), success_level=success_level)
+        record = Record(account_username=request.form['username'], filename=filename, success_level=success_level)
         for cut in cuts.iterrows():
             record_cuts = RecordCuts(account_username=request.form['username'], filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
             db.session.add(record_cuts)
@@ -82,8 +87,9 @@ def upload_video():
         db.session.commit()
 
         print("made it here 7")
+        
 
-        return render_template('upload.html')
+        return render_template('train-upload.html')
     else:
         print("made it here 8")
 
@@ -98,31 +104,90 @@ def analyze_video():
     fullpath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
     if not verify_database(username, filename):
-        print("made it here 55!!!")
+        print("made it here 55")
         return Response("A record already exists with specified username and filename", status=409,)
     file.save(fullpath)
     cuts = extract_cuts(fullpath)
-    num_cuts = len(cuts.index)
-    print("made it here 4!!!")
-
+    print("made it here 4")
+    list_record_cuts = []
+    for cut in cuts.iterrows():
+        record_cuts = RecordCuts(account_username=request.form['username'], filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
+        list_record_cuts.append(record_cuts)
     os.remove(fullpath)
     print('upload_video filename: ' + filename)
 
-    print("made it here 5!!!")
-    label_vector = ['low', 'medium', 'low', 'high']
-    feature_vector = [[3], [4], [2], [7]]
+    print("made it here 5")
+    label_vector = retrieve_label_vector(username)
+    feature_vector = retrieve_feature_vector(username)
+    
     classifier = tree.DecisionTreeClassifier()
     classifier = classifier.fit(feature_vector, label_vector)
-    print(str(classifier.predict([[num_cuts]])))
+    result = str(classifier.predict([assemble_feature_vector(list_record_cuts)]))
+    print(result)
     dot_data = tree.export_graphviz(classifier, out_file=None)
     # graph = graphviz.Source(dot_data)
     # graph.render("Silliman")
 
-# tree.plot_tree(classifier)
+    # tree.plot_tree(classifier)
 
-    return cuts.to_json()
+    return result
 
+def cuts_before_one_third(cuts):
+    # num_cuts in first third of video
+    print
+    maximum = max(cuts, key=lambda x:int(x.end_timestamp))
+    print(maximum.end_timestamp)
+    one_third_threshold = int(maximum.end_timestamp / 3)
+    cuts_before_one_third_threshold = cuts.sort(key=lambda x:x.end_timestamp < one_third_threshold)
+    cuts_before_one_third_threshold = [] if cuts_before_one_third_threshold == None else cuts_before_one_third_threshold 
+    cuts_before_one_third_threshold = len(cuts_before_one_third_threshold)
+    return cuts_before_one_third_threshold
 
+def cuts_in_last_third(cuts):
+    # num_cuts starting in last third of video
+    maximum = max(cuts, key=lambda x:int(x.end_timestamp))
+    print(maximum.end_timestamp)
+    one_third_threshold = int(maximum.end_timestamp * 2 / 3)
+    cuts_before_one_third_threshold = cuts.sort(key=lambda x:x.start_timestamp > one_third_threshold)
+    cuts_before_one_third_threshold = [] if cuts_before_one_third_threshold == None else cuts_before_one_third_threshold 
+    cuts_before_one_third_threshold = len(cuts_before_one_third_threshold)
+    return cuts_before_one_third_threshold
+
+def video_duration(cuts):
+    # num_cuts starting in last third of video
+    maximum = max(cuts, key=lambda x:int(x.end_timestamp))
+    return maximum.end_timestamp
+
+def assemble_feature_vector(num_cuts):
+    listCounts = []
+    cuts_before_one_third_threshold = cuts_before_one_third(num_cuts)
+    print("cuts before 1/3 " + str(cuts_before_one_third_threshold))
+    cuts_in_last_third_threshold = cuts_in_last_third(num_cuts)
+    duration = video_duration(num_cuts)
+    listCounts.append(len(num_cuts))
+    listCounts.append(cuts_before_one_third_threshold)
+    listCounts.append(cuts_in_last_third_threshold)
+    listCounts.append(duration)
+    return listCounts
+
+def retrieve_feature_vector(username):
+    records = RecordCuts.query.filter_by(account_username=username).order_by(RecordCuts.filename.desc())
+    allFilenames = records.group_by(RecordCuts.filename).order_by(RecordCuts.filename.desc()).all()
+    listCounts = []
+    for filename in allFilenames:
+        print(filename)
+        # num_cuts
+        num_cuts = records.filter_by(filename=filename.filename).all()
+        print("num_cuts " + str(len(num_cuts)))
+
+        listCounts.append(assemble_feature_vector(num_cuts))
+    return listCounts
+
+    
+def retrieve_label_vector(username):
+    records = Record.query.filter_by(account_username=username).order_by(Record.filename.desc()).all()
+    mapped = map(lambda x: x.success_level, records)
+    return list(mapped)
 
 def extract_cuts(fullpath):
     vi = VideoBatchInput(input_path=fullpath)

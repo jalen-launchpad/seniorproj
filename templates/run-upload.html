@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<div>
+		<h2>Select a video to upload and analyze</h2>
+		<p>
+			{% with messages = get_flashed_messages() %}
+			{% if messages %}
+				<ul>
+				{% for message in messages %}
+				<li>{{ message }}</li>
+				{% endfor %}
+				</ul>
+			{% endif %}
+			{% endwith %}
+		</p>
+
+		<form method="post" action="http://localhost:5000/analysis" method = "POST" enctype="multipart/form-data">
+			<div class="flex-vertical flex-justify-evenly">
+				<div class="flex-vertical flex-justify-center">
+					<label for="username">Please enter account username</label>
+					<input style="width: 250px; height: 50px; border-radius:3px; color:black;" type="text" name="username" autocomplete="on" required>
+				</div>
+
+				<div style="margin-top: 50px;" class="flex-vertical flex-justify-center">
+					<label for="username">Upload video here</label>
+					<input type="file" id="file" name="file" autocomplete="off" required>				
+				</div>
+			<div style="margin-top: 50px;" class="flex-horizontal flex-justify-center">
+				<input class="button" style="border:none; width: 250px; height: 50px; border-radius:3px; color:white;" type="submit" value="Upload">
+			</div>
+			</div>
+		</form>
+	</div>
+{% endblock %}

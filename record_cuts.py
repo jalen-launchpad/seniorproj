@@ -8,4 +8,4 @@ class RecordCuts(db.Model):
     end_timestamp = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
-        return '<Record %r>' % self.username
+        return '<RecordCuts %r>' % self.account_username

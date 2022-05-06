@@ -5,12 +5,12 @@
         <h1 style="padding-bottom: 30px;">{% block title %} Choose an option below {% endblock %}</h1>
         <div class="flex-horizontal flex-justify-center">
             <p>
-            <a href="{{ url_for('upload_form')}}" class=" select-mode-button">
+            <a href="{{ url_for('train_upload_form')}}" class=" select-mode-button">
                 Train Dataset
             </a>
         </p>
         <p>
-            <a href="{{ url_for('upload_form')}}" class=" select-mode-button">
+            <a href="{{ url_for('run_upload_form')}}" class=" select-mode-button">
                 Run analysis
             </a>
         </p>

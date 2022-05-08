@@ -1,7 +1,10 @@
 import os
+import csv
 import cv2
+import zipfile
 from app import app, db
 import urllib.request
+import pandas as pd
 from flask import Flask, request, redirect, url_for, render_template, Response
 from werkzeug.utils import secure_filename
 import torch
@@ -18,6 +21,9 @@ def select_mode():
 def train_upload_form():
     return render_template('train-upload.html')
 
+@app.route('/train-batch-upload-form')
+def train_batch_upload_form():
+    return render_template('train-batch-upload.html')
 
 @app.route('/run-upload')
 def run_upload_form():
@@ -33,6 +39,18 @@ def check_file_validity():
         return False
     return True
 
+def check_batch_file_validity():
+    if 'files[]' not in request.files:
+        print('file validity failed')
+        return False
+    files = request.files.getlist['files[]']
+    if len(files) == 0:
+        print('file validity failed')
+        return false
+    if 'metadata.csv' not in files:
+        print('file validity failed')
+        return false
+    return True
 
 def verify_params():
     form_data = request.form
@@ -47,6 +65,67 @@ def verify_database(username, filename):
     if records_by_username_and_filename.count() == 0:
         return True
     return False
+
+@app.route('/train-batch', methods=['POST'])
+def upload_batch_videos():
+    # print("check_batch_file_validity(): " + str(check_batch_file_validity()))
+    file = request.files['file']  
+    file_like_object = file.stream._file  
+    zipfile_ob = zipfile.ZipFile(file_like_object, "r")
+    file_names = zipfile_ob.namelist()
+    # Filter names to only include the filetype that you want:
+    file_names = [file_name for file_name in file_names if file_name.endswith(".mp4") or file_name == "metadata.csv"]
+    file_names = [file_name for file_name in file_names if not file_name.startswith("_")]
+    index = file_names.index("metadata.csv")
+    metadata = pd.read_csv(zipfile_ob.open(file_names[index]), dtype=str)
+    file_names = [file_name for file_name in file_names if not file_name=="metadata.csv"]
+
+    #print("metadata rows")
+    #print(len(metadata.index))    
+    for (index, file) in enumerate(file_names):
+        metadata_index = metadata.index[metadata['video_id'] == file.replace(".mp4", "")]
+        filename = secure_filename(file)
+        fullpath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_open = open(fullpath, "wb")
+        file_open.write(zipfile_ob.read(file))
+        file_open.close()
+
+        video_id = metadata.iloc[metadata_index]
+        authorMetaName = video_id['authorMeta/name'].item()
+        playCount = int(video_id['playCount'].replace('\.\d+', '', regex=True))
+        shareCount = int(video_id['shareCount'].replace('\.\d+', '', regex=True))
+        commentCount = int(video_id['commentCount'].replace('\.\d+', '', regex=True))
+        # print(playCount, shareCount, commentCount)
+
+        cuts = extract_cuts(fullpath)
+        os.remove(fullpath)
+
+        success_level = get_success_level(playCount, shareCount, commentCount)
+        # print(type(authorMetaName))
+
+        record = Record(account_username=authorMetaName, filename=filename, success_level=success_level, play_count= playCount, share_count=shareCount, comment_count=commentCount)
+        for cut in cuts.iterrows():
+            record_cuts = RecordCuts(account_username=authorMetaName, filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
+            db.session.add(record_cuts)
+        db.session.add(record)
+        db.session.commit()
+        print(index)
+    return 'success'
+
+        
+        # return str(files)
+
+def get_success_level(playCount, shareCount, commentCount):
+    success_level = "none"
+    if commentCount > 300 or shareCount > 300 or playCount > 500000:
+        success_level = "high"
+    elif commentCount > 150 or shareCount > 150 or playCount > 150000:
+        success_level = "medium"
+    elif commentCount > 50 or shareCount > 50 or playCount > 50000:
+        success_level = "low"
+    else:
+        success_level = "none"
+    return success_level
 
 @app.route('/train', methods=['POST'])
 def upload_video():
@@ -70,7 +149,7 @@ def upload_video():
             print("made it here 5")
             return Response("A record already exists with specified username and filename", status=409,)
         file.save(fullpath)
-        cuts = extract_cuts(fullpath)
+        # cuts = extract_cuts(fullpath)
         print(cuts)
         num_cuts = len(cuts.index)
         extract_first_frame(fullpath)        
@@ -78,8 +157,11 @@ def upload_video():
 
         os.remove(fullpath)
         print('upload_video filename: ' + filename)
-
-        record = Record(account_username=request.form['username'], filename=filename, success_level=success_level)
+        play_count = request.form['playcount']
+        comment_count = request.form['commentcount']
+        share_count = request.form['sharecount']
+        success_level = get_success_level(request.form['playcount'], request.form['commentcount'],request.form['sharecount'])
+        record = Record(account_username=request.form['username'], filename=filename, success_level=success_level, play_count= play_count, share_count=share_count, comment_count=comment_count)
         for cut in cuts.iterrows():
             record_cuts = RecordCuts(account_username=request.form['username'], filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
             db.session.add(record_cuts)

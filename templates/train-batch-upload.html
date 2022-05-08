@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+	<div>
+		<h2>Select videos to upload and train</h2>
+		<p>
+			{% with messages = get_flashed_messages() %}
+			{% if messages %}
+				<ul>
+				{% for message in messages %}
+				<li>{{ message }}</li>
+				{% endfor %}
+				</ul>
+			{% endif %}
+			{% endwith %}
+		</p>
+		{% if filename %}
+			<div style="margin: 10px auto;">
+				
+				<video autoplay="autoplay" controls="controls" preload="preload">
+					<source src="{{ url_for('display_video', filename=filename) }}" type="video/mp4"></source>
+				</video>
+			</div>
+		{% endif %}
+
+		<form method="post" action="http://localhost:5000/train-batch" method = "POST" enctype="multipart/form-data">
+			<div class="flex-vertical flex-justify-evenly">
+
+				<div style="margin-top: 50px;" class="flex-vertical flex-justify-center">
+					<label for="username">Upload videos and metadata here.</label>
+					<input type="file" id="file" name="file" autocomplete="off" required>				
+				</div>
+			<div style="margin-top: 50px;" class="flex-horizontal flex-justify-center">
+				<input class="button" style="border:none; width: 250px; height: 50px; border-radius:3px; color:white;" type="submit" value="Upload">
+			</div>
+			</div>
+		</form>
+	</div>
+{% endblock %}

@@ -91,26 +91,30 @@ def upload_batch_videos():
         file_open.close()
 
         video_id = metadata.iloc[metadata_index]
-        authorMetaName = video_id['authorMeta/name'].item()
-        playCount = int(video_id['playCount'].replace('\.\d+', '', regex=True))
-        shareCount = int(video_id['shareCount'].replace('\.\d+', '', regex=True))
-        commentCount = int(video_id['commentCount'].replace('\.\d+', '', regex=True))
-        # print(playCount, shareCount, commentCount)
+        try:
+            authorMetaName = video_id['authorMeta/name'].item()
+            playCount = int(video_id['playCount'].replace('\.\d+', '', regex=True))
+            shareCount = int(video_id['shareCount'].replace('\.\d+', '', regex=True))
+            commentCount = int(video_id['commentCount'].replace('\.\d+', '', regex=True))
+            # print(playCount, shareCount, commentCount)
 
-        cuts = extract_cuts(fullpath)
-        os.remove(fullpath)
+            cuts = extract_cuts(fullpath)
+            os.remove(fullpath)
 
-        success_level = get_success_level(playCount, shareCount, commentCount)
-        # print(type(authorMetaName))
+            success_level = get_success_level(playCount, shareCount, commentCount)
+            # print(type(authorMetaName))
 
-        record = Record(account_username=authorMetaName, filename=filename, success_level=success_level, play_count= playCount, share_count=shareCount, comment_count=commentCount)
-        for cut in cuts.iterrows():
-            record_cuts = RecordCuts(account_username=authorMetaName, filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
-            db.session.add(record_cuts)
-        db.session.add(record)
-        db.session.commit()
-        print(index)
-    return 'success'
+            record = Record(account_username=authorMetaName, filename=filename, success_level=success_level, play_count= playCount, share_count=shareCount, comment_count=commentCount)
+            for cut in cuts.iterrows():
+                record_cuts = RecordCuts(account_username=authorMetaName, filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
+                db.session.add(record_cuts)
+            db.session.add(record)
+            db.session.commit()
+            print(index)
+        except:
+            print("Error Error Error")
+            continue
+    return render_template("train-batch-upload.html")
 
         
         # return str(files)
@@ -136,11 +140,9 @@ def upload_video():
         print(request.form.keys())
         username = request.form['username']
         print("made it here 3")
-
-        success_level = request.form['success_level']
  
         file = request.files['file']
-
+        print("made it here 4")
         filename = secure_filename(file.filename)
         fullpath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         print("made it here 4")
@@ -149,18 +151,18 @@ def upload_video():
             print("made it here 5")
             return Response("A record already exists with specified username and filename", status=409,)
         file.save(fullpath)
-        # cuts = extract_cuts(fullpath)
+        cuts = extract_cuts(fullpath)
         print(cuts)
         num_cuts = len(cuts.index)
-        extract_first_frame(fullpath)        
+        # extract_first_frame(fullpath)        
         print("made it here 6")
 
         os.remove(fullpath)
         print('upload_video filename: ' + filename)
-        play_count = request.form['playcount']
-        comment_count = request.form['commentcount']
-        share_count = request.form['sharecount']
-        success_level = get_success_level(request.form['playcount'], request.form['commentcount'],request.form['sharecount'])
+        play_count = int(request.form['playcount'])
+        comment_count = int(request.form['commentcount'])
+        share_count = int(request.form['sharecount'])
+        success_level = get_success_level(play_count, comment_count, share_count)
         record = Record(account_username=request.form['username'], filename=filename, success_level=success_level, play_count= play_count, share_count=share_count, comment_count=comment_count)
         for cut in cuts.iterrows():
             record_cuts = RecordCuts(account_username=request.form['username'], filename=filename, start_timestamp = int(cut[1]['frame_start']), end_timestamp = int(cut[1]['frame_end']))
@@ -212,25 +214,41 @@ def analyze_video():
 
     # tree.plot_tree(classifier)
 
-    return result
+    return render_template("result.html", success_level=result)
+
+def lambdafunc(end_timestamp, one_third_threshold):
+    #print("end_timestamp", end_timestamp)
+    #print("one_third_threshold", one_third_threshold)
+    return end_timestamp < one_third_threshold
+
+def lambdafunc2(start_timestamp, one_third_threshold):
+    #print("end_timestamp", end_timestamp)
+    #print("one_third_threshold", one_third_threshold)
+    return start_timestamp < one_third_threshold
+
 
 def cuts_before_one_third(cuts):
     # num_cuts in first third of video
-    print
+    #print(cuts)
     maximum = max(cuts, key=lambda x:int(x.end_timestamp))
-    print(maximum.end_timestamp)
+    #print(maximum.end_timestamp)
     one_third_threshold = int(maximum.end_timestamp / 3)
-    cuts_before_one_third_threshold = cuts.sort(key=lambda x:x.end_timestamp < one_third_threshold)
+    # print("one_third_threshold", one_third_threshold)
+    cuts_before_one_third_threshold = list(filter(lambda x: lambdafunc(x.end_timestamp, one_third_threshold), cuts))
+    #print("cuts_before_one_third_threshold", cuts_before_one_third_threshold)
     cuts_before_one_third_threshold = [] if cuts_before_one_third_threshold == None else cuts_before_one_third_threshold 
+    #print("cuts_before_one_third_threshold 2", cuts_before_one_third_threshold)
     cuts_before_one_third_threshold = len(cuts_before_one_third_threshold)
+    #print("cuts_before_one_third_threshold 3", cuts_before_one_third_threshold)
+
     return cuts_before_one_third_threshold
 
 def cuts_in_last_third(cuts):
     # num_cuts starting in last third of video
     maximum = max(cuts, key=lambda x:int(x.end_timestamp))
-    print(maximum.end_timestamp)
+    # print(maximum.end_timestamp)
     one_third_threshold = int(maximum.end_timestamp * 2 / 3)
-    cuts_before_one_third_threshold = cuts.sort(key=lambda x:x.start_timestamp > one_third_threshold)
+    cuts_before_one_third_threshold = list(filter(lambda x: lambdafunc2(x.start_timestamp, one_third_threshold), cuts))
     cuts_before_one_third_threshold = [] if cuts_before_one_third_threshold == None else cuts_before_one_third_threshold 
     cuts_before_one_third_threshold = len(cuts_before_one_third_threshold)
     return cuts_before_one_third_threshold
@@ -243,7 +261,7 @@ def video_duration(cuts):
 def assemble_feature_vector(num_cuts):
     listCounts = []
     cuts_before_one_third_threshold = cuts_before_one_third(num_cuts)
-    print("cuts before 1/3 " + str(cuts_before_one_third_threshold))
+    # print("cuts before 1/3 " + str(cuts_before_one_third_threshold))
     cuts_in_last_third_threshold = cuts_in_last_third(num_cuts)
     duration = video_duration(num_cuts)
     listCounts.append(len(num_cuts))
@@ -255,12 +273,13 @@ def assemble_feature_vector(num_cuts):
 def retrieve_feature_vector(username):
     records = RecordCuts.query.filter_by(account_username=username).order_by(RecordCuts.filename.desc())
     allFilenames = records.group_by(RecordCuts.filename).order_by(RecordCuts.filename.desc()).all()
+    print(allFilenames)
     listCounts = []
     for filename in allFilenames:
-        print(filename)
+        #print(filename)
         # num_cuts
         num_cuts = records.filter_by(filename=filename.filename).all()
-        print("num_cuts " + str(len(num_cuts)))
+        #print("num_cuts " + str(len(num_cuts)))
 
         listCounts.append(assemble_feature_vector(num_cuts))
     return listCounts

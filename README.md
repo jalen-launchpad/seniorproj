@@ -26,3 +26,9 @@ init_db.py needs to be in top-level directory to work.
 
 Link to zip file with 250 training data example videos and metadata.csv: 
 https://drive.google.com/file/d/1WdaBDvedAzgIQVqBxnO833ythGYuyj5q/view?usp=sharing
+
+## Note
+
+Currently there is a seniorproject.db already initialized with the archive training data.  There is a folder, test_videos with example videos to run in "run_analysis" mode.
+
+To test the batch upload, delete seniorproject.db, run ```python3 init_db.py``` in top level directory, download the training data archive from Drive link above, input that archive into the "train batch" page, and wait like an hour :D 

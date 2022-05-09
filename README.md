@@ -1,9 +1,15 @@
-RUN FLASK_APP=src/main.py flask run from top-level directory or it will break.
+# TikTok predictor
+The TikTok predictor is a web application that uses the Distant Viewing Toolkit in order to analyze and make predictions on TikTok video success.
 
-If the DB is not initialized... to initialize follow below commands
-Go to src/directory of flask
-jalengabbidon$ Python3
->>from app import db
->>from record import *
->>db.create_all()
->>db.session.commit()
+## How to download requirements
+
+Run in the terminal:
+git clone https://github.com/jalen-launchpad/seniorproj.git
+pip install -r requirements.txt
+
+## How to run the application
+
+RUN FLASK_APP=src/upload.py flask run from top-level directory
+Navigate to https://localhost:5000
+
+If seniorproject.db is not initialized... run the script in file scripts/init_db.py

@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```
 ## How to run the application
 
-```RUN FLASK_APP=src/upload.py flask run``` from top-level directory
+```FLASK_APP=upload.py flask run``` from top-level directory
 
 Navigate to https://localhost:5000
 
